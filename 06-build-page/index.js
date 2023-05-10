@@ -4,54 +4,66 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const styleDir = path.join(__dirname, '/styles/');
-const assetsDir = path.join(__dirname, '/assets/');
+const assetsDir = path.join(__dirname, 'assets');
 const projDir = path.join(__dirname, 'project-dist');
 const projCSS = path.join(projDir, '/style.css');
 
-fs.mkdir(projDir,(err)=>{
-  if(err) {
-    if(err.code === 'EEXIST') console.log('Dir ' + projDir + ' already exist!');
-    else throw err;
-  }
-});
 
-const copyFolder = (_dirPath,_copyPath) =>{
-  fs.readdir(_copyPath, (err, files) => {
-    if (err) {return 0};
-    files.forEach((f) => {
-      fs.unlink(_copyPath + '/' + f, err => {
-        if (err) throw err;
-      });
-    });
-  });
-  
+const clearFolder = () =>{
+  fs.rm(projDir, { recursive: true }, (err) => {
+        fs.mkdir(projDir,(err) => {
+          if(err) {
+            if(err.code === 'EEXIST') console.log('Dir ' + projDir + ' already exist!');
+            else throw err;
+          }
+          bundleCSS(styleDir,projCSS);
+          copyFolder(assetsDir,path.join(projDir, 'assets'));  
+          
+        }); 
+  });  
+}
+
+
+const copyFolder = (_dirPath,_copyPath) => {
+  // fs.readdir(_copyPath, (err, files) => {
+  //   if (err) {return 0};
+  //   files.forEach((f) => {
+  //     fs.unlink(_copyPath + '/' + f, err => {
+  //       if (err) throw err;
+  //     });
+  //   });
+  // });
   fs.cp(_dirPath, 
         _copyPath,
         {recursive: true}, 
         function (err) {
           if (err) throw err;
           else console.log("Folder copied successfully!");
-        });
+          
+        });      
 }
 
 const bundleCSS = (_styleDir,_projCSS) => {
-  const writeStream = fs.createWriteStream(_projCSS,{flags: 'a'});
-  fs.unlink(_projCSS, err => {
+  const writeStream =  fs.createWriteStream(_projCSS,{flags: 'a'});
+   fs.unlink(_projCSS, err => {
     if (err) return 0;
   });
-  fs.readdir(_styleDir,{withFileTypes: true},(err,files)=>{
+   fs.readdir(_styleDir,{withFileTypes: true},(err,files)=>{
     if(err) throw err;
     else console.log("Styles bundled successfully!");
-    files.forEach(file => {
+    files.forEach((file,ind) => {
       if(file.isFile() && (file.name.split('.').pop() === 'css')) {
         const readStream = fs.createReadStream(_styleDir + file.name, 'utf8');
-        readStream.on('data', (e) => writeStream.write(e));
+        readStream.on('data', (e) => {
+          writeStream.write(e);
+          if(ind === (files.length - 1)) buildHtml();
+        });
       }
     });
   });
 }
 
-const buildHtml = async () => {
+const buildHtml = () => {
   const template = fs.createReadStream(path.join(__dirname, 'template.html'));
   const componentsHtml = path.join(__dirname, 'components');
   const htmlFile = fs.createWriteStream(path.join(projDir, 'index.html'));
@@ -77,6 +89,9 @@ const buildHtml = async () => {
               });
   });
 }
-bundleCSS(styleDir,projCSS);
-copyFolder(assetsDir,projDir + '/assets/');
-buildHtml();
+clearFolder();
+
+//bundleCSS(styleDir,projCSS);
+//copyFolder(assetsDir,path.join(projDir, '/assets'));
+//console.log(assetsDir,path.join(projDir, '/assets'));
+//buildHtml();

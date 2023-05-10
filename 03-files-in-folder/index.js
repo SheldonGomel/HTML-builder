@@ -8,7 +8,10 @@ fs.readdir(dirPath,{withFileTypes: true},(err,files)=>{
   if(err) throw err;
   files.forEach(file => {
     if(file.isFile()){
-      let str = file.name.replace('.', ' - ') + ' - ';
+      let arr = file.name.split('.');
+      let fileExt = arr.pop();
+      let fileName = arr.join('.');
+      let str = fileName + ' - ' + fileExt + ' - ';
       fs.stat(dirPath + file.name,(err,st)=>{
         if(err) throw err;
         console.log(str + (st.size / 1024).toFixed(3) + 'kb');
